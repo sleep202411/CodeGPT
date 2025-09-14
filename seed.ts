@@ -72,7 +72,7 @@ const loadData = async (webpages: string[]) => {
 
 // 维护一个知识库，知识库的来源可配置
 loadData([
-    // "https://www.cosdna.com",                 // COSDNA（化妆品成分查询）
-    // "https://www.incidecoder.com",            // INCI Decoder（英文成分解析）
+    "https://www.cosdna.com",                 // COSDNA（化妆品成分查询）
+    "https://www.incidecoder.com",            // INCI Decoder（英文成分解析）
     "https://zh.wikipedia.org/wiki/化妆品"  
 ]);
