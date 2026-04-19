@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "glamGPT",
-  description: "一个 AI 美妆助手，结合最新的知识库为你解答护肤与彩妆问题",
+  title: "CodeGPT - 智能代码问答系统",
+  description: "基于检索增强生成的智能代码问答系统，帮助你快速找到代码答案",
 };
 
 export default function RootLayout({
