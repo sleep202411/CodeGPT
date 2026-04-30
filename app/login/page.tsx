@@ -1,47 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  getBrowserSupabase,
-  isSupabaseAuthConfigured,
-} from "@/lib/supabase/browser-client";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const configured = isSupabaseAuthConfigured();
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!configured) {
-      setError("未配置 NEXT_PUBLIC_SUPABASE_URL 或 NEXT_PUBLIC_SUPABASE_ANON_KEY");
-      return;
-    }
-    const supabase = getBrowserSupabase();
-    if (!supabase) {
-      setError("无法初始化 Supabase 客户端");
-      return;
-    }
+
     setLoading(true);
-    const { error: signError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    setLoading(false);
-    if (signError) {
-      setError(signError.message);
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    if (username.trim() !== "admin" || password !== "admin123") {
+      setLoading(false);
+      setError("用户名或密码错误");
       return;
     }
+
+    document.cookie = `codegpt_auth=admin; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
+
+    setLoading(false);
     const next = new URLSearchParams(window.location.search).get("next");
     const dest =
       next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
@@ -50,48 +38,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-b from-blue-50/80 via-background to-background">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link
-            href="/"
-            className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 bg-clip-text text-transparent tracking-wide"
-          >
-            CodeGPT
-          </Link>
-          <p className="text-muted-foreground text-sm mt-2">登录以继续使用</p>
+    <div className="w-full min-h-screen bg-[#eef3fb]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] items-center px-8 py-10">
+        <div className="hidden w-1/2 items-center justify-center lg:flex">
+          <div className="h-[420px] w-[420px] rounded-full bg-gradient-to-br from-sky-200/50 to-blue-100/20 blur-xl" />
         </div>
+        <div className="flex-1 rounded-2xl border border-[#dfe7f4] bg-white px-8 py-10 shadow-sm md:px-14 md:py-16 lg:max-w-[560px]">
+          <div className="font-brand mb-4 text-center font-semibold text-[40px] leading-[40px] text-[#1f7be9]">
+            欢迎使用
+          </div>
+          <div className="border-b border-dashed border-[#d7dfea] pb-8 text-center text-[22px] font-semibold text-[#6b7a90]">
+            CodeGPT
+          </div>
 
-        <div className="rounded-2xl border border-blue-100/80 bg-card/80 backdrop-blur-sm shadow-lg shadow-blue-500/5 p-8">
-          {!configured && (
-            <p className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900 rounded-lg px-3 py-2 mb-6">
-              请在 <code className="text-xs">.env.local</code> 中配置{" "}
-              <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code> 与{" "}
-              <code className="text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>
-              （项目 Settings → API 中的 anon public key），并在 Supabase
-              Authentication 中启用 Email 登录。
-            </p>
-          )}
-
-          <form onSubmit={onSubmit} className="space-y-5">
+          <form onSubmit={onSubmit} className="mt-14 space-y-6">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                邮箱
+              <label htmlFor="username" className="text-sm font-medium text-[#4f5f75]">
+                用户名
               </label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="h-11 rounded-xl border-blue-100 focus-visible:ring-blue-200"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="请输入用户名"
+                className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
+              <label htmlFor="password" className="text-sm font-medium text-[#4f5f75]">
                 密码
               </label>
               <Input
@@ -102,13 +80,13 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="h-11 rounded-xl border-blue-100 focus-visible:ring-blue-200"
+                placeholder="请输入密码"
+                className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
               />
             </div>
 
             {error && (
-              <p className="text-sm text-destructive" role="alert">
+              <p className="text-sm text-[#e54949]" role="alert">
                 {error}
               </p>
             )}
@@ -116,7 +94,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-md"
+              className="mt-12 h-14 w-full rounded-xl bg-[#1f7be9] text-[17px] text-white hover:bg-[#1d70d5]"
             >
               {loading ? (
                 <>
@@ -124,15 +102,14 @@ export default function LoginPage() {
                   登录中…
                 </>
               ) : (
-                "登录"
+                "立即登录"
               )}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            <Link href="/" className="text-blue-600 hover:text-blue-700 underline-offset-4 hover:underline">
-              返回首页
-            </Link>
+          <p className="mt-4 text-xs text-[#8c9aaf]">
+            测试账号：用户名 <span className="font-medium text-[#4f5f75]">admin</span>，密码{" "}
+            <span className="font-medium text-[#4f5f75]">admin123</span>
           </p>
         </div>
       </div>

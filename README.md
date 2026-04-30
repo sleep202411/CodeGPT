@@ -58,8 +58,6 @@ CodeGPT/
 ### 1. 安装依赖
 
 ```bash
-npm install
-# 或
 pnpm install
 ```
 
@@ -137,13 +135,13 @@ $$;
 修改 `seed.ts` 中的代码路径，然后运行：
 
 ```bash
-npm run seed
+pnpm run seed
 ```
 
 ### 5. 启动开发服务器
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 访问 http://localhost:3000
@@ -166,7 +164,7 @@ npm run dev
      './src',
    ];
    ```
-   然后运行 `npm run seed`
+   然后运行 `pnpm run seed`
 
 ### 问答使用
 
@@ -180,10 +178,10 @@ npm run dev
 ### 项目脚本
 
 ```bash
-npm run dev      # 启动开发服务器
-npm run build    # 构建生产版本
-npm run start    # 启动生产服务器
-npm run seed     # 运行数据种子脚本
+pnpm run dev      # 启动开发服务器
+pnpm run build    # 构建生产版本
+pnpm run start    # 启动生产服务器
+pnpm run seed     # 运行数据种子脚本
 ```
 
 ### 核心模块

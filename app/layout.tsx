@@ -23,7 +23,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="fonts-loading">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(() => {
+  const done = () => document.documentElement.classList.remove('fonts-loading');
+  const timeout = setTimeout(done, 3000);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      clearTimeout(timeout);
+      done();
+    }).catch(() => {
+      clearTimeout(timeout);
+      done();
+    });
+  } else {
+    done();
+  }
+})();
+`,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

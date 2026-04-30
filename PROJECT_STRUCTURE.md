@@ -220,8 +220,6 @@ OPENAI_API_BASE_URL=https://api.openai.com/v1  # 可选，使用代理时修改
 ### 1. 安装依赖
 
 ```bash
-npm install
-# 或
 pnpm install
 ```
 
@@ -237,13 +235,13 @@ pnpm install
 
 ```bash
 # 修改 seed.ts 中的代码路径
-npm run seed
+pnpm run seed
 ```
 
 ### 5. 启动开发服务器
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 访问 http://localhost:3000

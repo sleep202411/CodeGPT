@@ -1,6 +1,30 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "YouSheBiaoTiHei";
+  src: url("/font/YouSheBiaoTiHei-2.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Alibaba PuHuiTi 3.0";
+  src: url("/font/AlibabaPuHuiTi-3-55-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Alibaba PuHuiTi 3.0";
+  src: url("/font/AlibabaPuHuiTi-3-85-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -44,6 +68,10 @@
 }
 
 :root {
+  --font-cjk-ui: "Alibaba PuHuiTi 3.0", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans CJK SC", system-ui, -apple-system, sans-serif;
+  --font-cjk-brand: "YouSheBiaoTiHei", "STHeiti", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
   --radius: 1rem;
   --background: oklch(0.995 0.01 360);
   --foreground: oklch(0.2 0.01 360);
@@ -51,31 +79,43 @@
   --card-foreground: oklch(0.2 0.01 360);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.01 360);
-  --primary: oklch(0.83 0.25 350);
+  --primary: oklch(0.62 0.18 255);
   --primary-foreground: oklch(0.99 0.01 360);
-  --secondary: oklch(0.96 0.1 350);
-  --secondary-foreground: oklch(0.3 0.2 350);
-  --muted: oklch(0.97 0.05 350);
-  --muted-foreground: oklch(0.5 0.1 350);
-  --accent: oklch(0.9 0.2 345);
+  --secondary: oklch(0.95 0.02 255);
+  --secondary-foreground: oklch(0.32 0.06 255);
+  --muted: oklch(0.96 0.015 255);
+  --muted-foreground: oklch(0.56 0.03 255);
+  --accent: oklch(0.94 0.03 255);
   --accent-foreground: oklch(0.99 0.01 360);
   --destructive: oklch(0.6 0.3 15);
-  --border: oklch(0.9 0.1 350);
-  --input: oklch(0.96 0.05 350);
-  --ring: oklch(0.8 0.2 350);
-  --chart-1: oklch(0.75 0.3 340);
-  --chart-2: oklch(0.85 0.25 330);
-  --chart-3: oklch(0.9 0.2 320);
-  --chart-4: oklch(0.8 0.25 310);
-  --chart-5: oklch(0.7 0.3 300);
+  --border: oklch(0.9 0.02 255);
+  --input: oklch(0.95 0.015 255);
+  --ring: oklch(0.72 0.12 255);
+  --chart-1: oklch(0.68 0.2 255);
+  --chart-2: oklch(0.74 0.16 240);
+  --chart-3: oklch(0.78 0.14 220);
+  --chart-4: oklch(0.7 0.18 265);
+  --chart-5: oklch(0.62 0.2 280);
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.2 0.01 360);
-  --sidebar-primary: oklch(0.83 0.25 350);
+  --sidebar-primary: oklch(0.62 0.18 255);
   --sidebar-primary-foreground: oklch(0.99 0.01 360);
-  --sidebar-accent: oklch(0.96 0.1 350);
-  --sidebar-accent-foreground: oklch(0.3 0.2 350);
-  --sidebar-border: oklch(0.9 0.1 350);
-  --sidebar-ring: oklch(0.8 0.2 350);
+  --sidebar-accent: oklch(0.95 0.02 255);
+  --sidebar-accent-foreground: oklch(0.32 0.06 255);
+  --sidebar-border: oklch(0.9 0.02 255);
+  --sidebar-ring: oklch(0.72 0.12 255);
+  --app-bg: #eef3fb;
+  --app-surface: #f6f8fc;
+  --app-card: #ffffff;
+  --app-border: #dce5f2;
+  --app-border-strong: #d9e2f0;
+  --app-text: #31445f;
+  --app-text-muted: #8ea0bb;
+  --app-text-secondary: #5f6f87;
+  --app-primary: #2a84eb;
+  --app-primary-soft: #e8f1ff;
+  --app-hover: #edf3fb;
+  --manager-bg-color: #2a84eb;
 }
 
 .dark {
@@ -110,6 +150,48 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --app-bg: #111827;
+  --app-surface: #1f2937;
+  --app-card: #111827;
+  --app-border: #334155;
+  --app-border-strong: #3f4d63;
+  --app-text: #e5e7eb;
+  --app-text-muted: #94a3b8;
+  --app-text-secondary: #cbd5e1;
+  --app-primary: #60a5fa;
+  --app-primary-soft: #1e3a5f;
+  --app-hover: #2b3b52;
+  --manager-bg-color: #0f172a;
+}
+
+body[theme="light"] {
+  --app-bg: #eef3fb;
+  --app-surface: #f6f8fc;
+  --app-card: #ffffff;
+  --app-border: #dce5f2;
+  --app-border-strong: #d9e2f0;
+  --app-text: #31445f;
+  --app-text-muted: #8ea0bb;
+  --app-text-secondary: #5f6f87;
+  --app-primary: #2a84eb;
+  --app-primary-soft: #e8f1ff;
+  --app-hover: #edf3fb;
+  --manager-bg-color: #2a84eb;
+}
+
+body[theme="dark"] {
+  --app-bg: #111827;
+  --app-surface: #1f2937;
+  --app-card: #111827;
+  --app-border: #334155;
+  --app-border-strong: #3f4d63;
+  --app-text: #e5e7eb;
+  --app-text-muted: #94a3b8;
+  --app-text-secondary: #cbd5e1;
+  --app-primary: #60a5fa;
+  --app-primary-soft: #1e3a5f;
+  --app-hover: #2b3b52;
+  --manager-bg-color: #0f172a;
 }
 
 @layer base {
@@ -118,5 +200,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-cjk-ui);
   }
+}
+
+.font-brand {
+  font-family: var(--font-cjk-brand);
+}
+
+html.fonts-loading body {
+  visibility: hidden;
+  background: #fff !important;
 }

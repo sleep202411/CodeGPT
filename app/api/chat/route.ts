@@ -8,17 +8,20 @@ import {
 import {
     createClient
 } from '@supabase/supabase-js';
-import { log } from 'console';
-
-const supabase = createClient(
-    process.env.SUPABASE_URL ?? "",
-    process.env.SUPABASE_KEY ?? ""
-);
 
 const openai = createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
     baseURL: process.env.OPENAI_API_BASE_URL,
 })
+
+function getSupabaseClient() {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error("SUPABASE_URL 或 SUPABASE_KEY 未配置");
+    }
+    return createClient(supabaseUrl, supabaseKey);
+}
 
 async function generateEmbedding(message: string) {
     return embed({
@@ -28,6 +31,7 @@ async function generateEmbedding(message: string) {
 }
 
 async function fetchRelevantContext(embedding: number[]) {
+    const supabase = getSupabaseClient();
     const {
         data,
         error
@@ -89,6 +93,7 @@ export async function POST(req: Request) {
         })
         return result.toDataStreamResponse();
     } catch (err) {
-        throw err;
+        const message = err instanceof Error ? err.message : "请求处理失败";
+        return Response.json({ error: message }, { status: 500 });
     }
 }
