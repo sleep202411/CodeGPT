@@ -23,24 +23,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="fonts-loading">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
 (() => {
-  const done = () => document.documentElement.classList.remove('fonts-loading');
-  const timeout = setTimeout(done, 3000);
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
-      clearTimeout(timeout);
+  function start() {
+    const done = () => document.body?.classList.remove("fonts-loading");
+    const timeout = setTimeout(done, 3000);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        clearTimeout(timeout);
+        done();
+      }).catch(() => {
+        clearTimeout(timeout);
+        done();
+      });
+    } else {
       done();
-    }).catch(() => {
-      clearTimeout(timeout);
-      done();
-    });
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
-    done();
+    start();
   }
 })();
 `,
@@ -48,7 +55,9 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
+        className={`notranslate ${geistSans.variable} ${geistMono.variable} antialiased fonts-loading`}
+        translate="no"
       >
         {children}
       </body>

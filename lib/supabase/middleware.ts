@@ -1,20 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const LOGIN_PATH = "/login";
+import { isSupabaseAuthConfigured } from "./env";
 
-function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
+const LOGIN_PATH = "/login";
+const REGISTER_PATH = "/register";
 
 /**
  * Refreshes Auth session + enforces: 未登录 → /login，已登录访问 /login → /
  */
 export async function updateSession(request: NextRequest) {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseAuthConfigured()) {
     return NextResponse.next();
   }
 
@@ -46,15 +42,20 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+  const isPublicAuth =
+    path === LOGIN_PATH ||
+    path.startsWith(`${LOGIN_PATH}/`) ||
+    path === REGISTER_PATH ||
+    path.startsWith(`${REGISTER_PATH}/`);
 
-  if (!user && path !== LOGIN_PATH && !path.startsWith(`${LOGIN_PATH}/`)) {
+  if (!user && !isPublicAuth) {
     const url = request.nextUrl.clone();
     url.pathname = LOGIN_PATH;
     url.searchParams.set("next", path);
     return NextResponse.redirect(url);
   }
 
-  if (user && (path === LOGIN_PATH || path.startsWith(`${LOGIN_PATH}/`))) {
+  if (user && (path === LOGIN_PATH || path.startsWith(`${LOGIN_PATH}/`) || path === REGISTER_PATH)) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.searchParams.delete("next");

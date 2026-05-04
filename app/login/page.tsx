@@ -1,23 +1,46 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getSafePostAuthRedirect } from "@/lib/auth-redirect";
+import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 
 export default function LoginPage() {
   const router = useRouter();
+  const useSupabase = isSupabaseAuthConfigured();
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
     setLoading(true);
+
+    if (useSupabase) {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = (await res.json()) as { error?: string };
+      setLoading(false);
+      if (!res.ok) {
+        setError(data.error || "登录失败");
+        return;
+      }
+      router.replace(getSafePostAuthRedirect());
+      router.refresh();
+      return;
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -30,59 +53,73 @@ export default function LoginPage() {
     document.cookie = `codegpt_auth=admin; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
 
     setLoading(false);
-    const next = new URLSearchParams(window.location.search).get("next");
-    const dest =
-      next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
-    router.replace(dest);
+    router.replace(getSafePostAuthRedirect());
     router.refresh();
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#eef3fb]">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] items-center px-8 py-10">
-        <div className="hidden w-1/2 items-center justify-center lg:flex">
-          <div className="h-[420px] w-[420px] rounded-full bg-gradient-to-br from-sky-200/50 to-blue-100/20 blur-xl" />
-        </div>
-        <div className="flex-1 rounded-2xl border border-[#dfe7f4] bg-white px-8 py-10 shadow-sm md:px-14 md:py-16 lg:max-w-[560px]">
-          <div className="font-brand mb-4 text-center font-semibold text-[40px] leading-[40px] text-[#1f7be9]">
-            欢迎使用
-          </div>
-          <div className="border-b border-dashed border-[#d7dfea] pb-8 text-center text-[22px] font-semibold text-[#6b7a90]">
-            CodeGPT
-          </div>
-
+    <AuthPageShell title="欢迎使用">
           <form onSubmit={onSubmit} className="mt-14 space-y-6">
-            <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium text-[#4f5f75]">
-                用户名
-              </label>
-              <Input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="请输入用户名"
-                className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
-              />
-            </div>
+            {useSupabase ? (
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-[#4f5f75]">
+                  邮箱
+                </label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="请输入邮箱"
+                  className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label htmlFor="username" className="text-sm font-medium text-[#4f5f75]">
+                  用户名
+                </label>
+                <Input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="请输入用户名"
+                  className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-[#4f5f75]">
                 密码
               </label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="请输入密码"
-                className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="请输入密码"
+                  className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] pr-12 text-base focus-visible:ring-[#95baf3]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-[#7b8aa2] hover:bg-[#e9f0fb]"
+                  aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                >
+                  {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -107,12 +144,20 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-4 text-xs text-[#8c9aaf]">
-            测试账号：用户名 <span className="font-medium text-[#4f5f75]">admin</span>，密码{" "}
-            <span className="font-medium text-[#4f5f75]">admin123</span>
-          </p>
-        </div>
-      </div>
-    </div>
+          {useSupabase ? (
+            <p className="mt-6 text-center text-sm text-[#6b7a90]">
+              还没有账号？{" "}
+              <Link href="/register" className="font-medium text-[#1f7be9] hover:underline">
+                去注册
+              </Link>
+            </p>
+          ) : (
+            <p className="mt-4 text-xs text-[#8c9aaf]">
+              未配置 Supabase 时使用本地演示：用户名{" "}
+              <span className="font-medium text-[#4f5f75]">admin</span>，密码{" "}
+              <span className="font-medium text-[#4f5f75]">admin123</span>
+            </p>
+          )}
+    </AuthPageShell>
   );
 }

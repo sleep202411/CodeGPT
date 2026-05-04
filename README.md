@@ -20,10 +20,10 @@ CodeGPT 是一个智能代码问答系统，通过检索增强生成技术，能
 
 - **前端**: Next.js 15 + React 19 + TypeScript
 - **UI**: Tailwind CSS + Radix UI
-- **AI**: Vercel AI SDK + OpenAI API
+- **AI**: Vercel AI SDK + Gemini API
 - **向量数据库**: Supabase (PostgreSQL + pgvector)
-- **嵌入模型**: OpenAI text-embedding-3-small
-- **LLM**: OpenAI GPT-4o-mini
+- **嵌入模型**: Gemini text-embedding-004（输出维度 1536）
+- **LLM**: Gemini 2.0 Flash
 - **文档处理**: LangChain
 
 ## 📁 项目结构
@@ -66,18 +66,33 @@ pnpm install
 创建 `.env.local` 文件：
 
 ```env
-# Supabase 配置
+# Supabase（启用邮箱登录 + 个人中心 profiles 表）
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_publishable_or_anon_key
 SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_anon_key
+SUPABASE_KEY=your_secret_or_service_role_key
 
-# OpenAI 配置
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_API_BASE_URL=https://api.openai.com/v1
+# DeepSeek（聊天）
+DEEPSEEK_API_KEY=your_deepseek_api_key
+
+# Jina（向量检索 embedding，Vercel 可访问）
+JINA_API_KEY=your_jina_api_key
+# 可选：默认 jina-embeddings-v3
+JINA_EMBED_MODEL=jina-embeddings-v3
 ```
+
+当 `NEXT_PUBLIC_SUPABASE_URL` 与 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 已配置时：
+
+- 中间件使用 **Supabase Auth 会话**（Cookie），登录页为 **邮箱 + 密码**，并提供 **`/register` 注册**。
+- 未配置时仍可使用本地演示账号：`admin` / `admin123`（`codegpt_auth` Cookie）。
+
+**Supabase 控制台**：Authentication → Providers 中启用 **Email**。
+
+**用户表**：在 SQL Editor 或通过 MCP 执行 `supabase/migrations/20260205120000_profiles.sql`，会创建 `public.profiles` 及 `auth.users` 注册后的自动写入触发器。
 
 ### 3. 初始化数据库
 
-在 Supabase 中执行以下 SQL：
+在 Supabase 中执行以下 SQL（向量检索，可与 `supabase_setup.sql` 或本仓库 `supabase/migrations` 脚本一致）：
 
 ```sql
 -- 创建 chunks 表
@@ -199,7 +214,7 @@ pnpm run seed     # 运行数据种子脚本
     ↓
 代码处理模块（分块、提取元数据）
     ↓
-生成向量嵌入（OpenAI Embedding）
+生成向量嵌入（Gemini Embedding）
     ↓
 存储到 Supabase（向量 + 元数据）
 ```
@@ -240,11 +255,11 @@ LLM 生成回答（流式返回）
 
 ## 📝 注意事项
 
-1. **API 密钥**: 确保 OpenAI API 密钥有效且有足够额度
-2. **向量维度**: text-embedding-3-small 生成 1536 维向量
+1. **API 密钥**: 确保 Gemini API 密钥有效且有足够额度
+2. **向量维度**: text-embedding-004 输出为 1536 维（需与数据库函数一致）
 3. **分块大小**: 建议 1000 字符，重叠 200 字符
 4. **检索参数**: 默认检索 Top-3，相似度阈值 0.7
-5. **API 限流**: 注意 OpenAI API 调用频率限制
+5. **API 限流**: 注意 Gemini API 调用频率限制
 
 ## 🔮 扩展方向
 
@@ -272,5 +287,5 @@ MIT License
 - [Next.js](https://nextjs.org/)
 - [Vercel AI SDK](https://sdk.vercel.ai/)
 - [Supabase](https://supabase.com/)
-- [OpenAI](https://openai.com/)
+- [Gemini API](https://ai.google.dev/)
 - [LangChain](https://langchain.com/)

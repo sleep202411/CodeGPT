@@ -17,6 +17,8 @@ export type UploadRecord = {
   mimeType: string;
   category: "media" | "image" | "document" | "other";
   createdAt: string;
+  /** 代码文件全文或图片 OCR 文本（截断后） */
+  extractedText?: string;
 };
 
 const recentSessionsSeed: RecentSessionRecord[] = [
@@ -26,7 +28,7 @@ const recentSessionsSeed: RecentSessionRecord[] = [
   { id: "session-4", title: "CodeGPT 上传接口返回 500 排查", updatedAt: new Date().toISOString() },
   { id: "session-5", title: "个人中心接口字段如何设计", updatedAt: new Date().toISOString() },
   { id: "session-6", title: "会话列表重命名与删除接口联调", updatedAt: new Date().toISOString() },
-  { id: "session-7", title: "聊天输入框样式对齐 chat-fe", updatedAt: new Date().toISOString() },
+  { id: "session-7", title: "聊天输入框样式优化", updatedAt: new Date().toISOString() },
   { id: "session-8", title: "最近对话批量操作交互优化", updatedAt: new Date().toISOString() },
   { id: "session-9", title: "OpenAI embedding 成本怎么降", updatedAt: new Date().toISOString() },
   { id: "session-10", title: "TypeScript 严格模式报错修复", updatedAt: new Date().toISOString() },
@@ -44,7 +46,7 @@ const recentSessionsSeed: RecentSessionRecord[] = [
   { id: "session-22", title: "会话标题自动生成逻辑设计", updatedAt: new Date().toISOString() },
   { id: "session-23", title: "Prompt 模板拆分与版本管理", updatedAt: new Date().toISOString() },
   { id: "session-24", title: "向量索引构建脚本性能优化", updatedAt: new Date().toISOString() },
-  { id: "session-25", title: "chat-fe 侧边栏交互细节对齐", updatedAt: new Date().toISOString() },
+  { id: "session-25", title: "侧边栏交互细节优化", updatedAt: new Date().toISOString() },
   { id: "session-26", title: "暗黑模式下组件配色变量规范", updatedAt: new Date().toISOString() },
   { id: "session-27", title: "个人中心资料编辑接口设计", updatedAt: new Date().toISOString() },
   { id: "session-28", title: "错误码体系与前端提示统一", updatedAt: new Date().toISOString() },
@@ -104,6 +106,7 @@ export async function createUploadRecord(input: {
   name: string;
   size: number;
   mimeType: string;
+  extractedText?: string;
 }): Promise<UploadRecord> {
   const category = resolveCategory(input.mimeType);
   const record: UploadRecord = {
@@ -113,6 +116,7 @@ export async function createUploadRecord(input: {
     mimeType: input.mimeType,
     category,
     createdAt: new Date().toISOString(),
+    ...(input.extractedText !== undefined ? { extractedText: input.extractedText } : {}),
   };
   uploadsSeed.unshift(record);
   return record;

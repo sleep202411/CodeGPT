@@ -9,12 +9,13 @@
   font-display: swap;
 }
 
+/* woff2 若损坏会触发 OTS 报错；用 optional 避免阻塞渲染与控制台刷屏 */
 @font-face {
   font-family: "Alibaba PuHuiTi 3.0";
   src: url("/font/AlibabaPuHuiTi-3-55-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @font-face {
@@ -22,7 +23,7 @@
   src: url("/font/AlibabaPuHuiTi-3-85-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -208,7 +209,8 @@ body[theme="dark"] {
   font-family: var(--font-cjk-brand);
 }
 
-html.fonts-loading body {
+/* 字体就绪前隐藏内容；class 挂在 body 上，避免与 Next 对 <html> 的 SSR 处理冲突 */
+body.fonts-loading {
   visibility: hidden;
   background: #fff !important;
 }

@@ -1,5 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+import { isSupabaseAuthConfigured } from "./env";
+
 type BrowserSupabaseClient = ReturnType<typeof createBrowserClient>;
 
 let client: BrowserSupabaseClient | null = null;
@@ -15,9 +17,4 @@ export function getBrowserSupabase(): BrowserSupabaseClient | null {
   return client;
 }
 
-export function isSupabaseAuthConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
+export { isSupabaseAuthConfigured };

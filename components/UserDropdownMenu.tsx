@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Moon, Sun, UserRound } from "lucide-react";
 
+import { fetchUserProfile } from "@/lib/api/person-client";
+import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
+
 const THEME_ENUM_LOCAL_STORAGE_KEY = "theme";
 
 type ThemeMode = "light" | "dark";
@@ -19,6 +22,8 @@ export default function UserDropdownMenu({ className = "" }: { className?: strin
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>("light");
+  const [menuLabel, setMenuLabel] = useState<string>("");
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<number | null>(null);
 
@@ -28,6 +33,25 @@ export default function UserDropdownMenu({ className = "" }: { className?: strin
     setTheme(nextTheme);
     applyTheme(nextTheme);
   }, []);
+
+  useEffect(() => {
+    if (!isSupabaseAuthConfigured()) {
+      setMenuLabel("admin");
+      return;
+    }
+    // 个人中心页本身会拉 profile，这里再请求会重复；该页也不展示「进个人中心」入口
+    if (pathname.startsWith("/person")) {
+      return;
+    }
+    const controller = new AbortController();
+    (async () => {
+      const result = await fetchUserProfile(controller.signal);
+      if (result.status !== "success") return;
+      const name = result.profile?.userName?.trim();
+      setMenuLabel(name || "用户");
+    })();
+    return () => controller.abort();
+  }, [pathname]);
 
   useEffect(() => {
     function onClickOutside(event: MouseEvent) {
@@ -74,10 +98,13 @@ export default function UserDropdownMenu({ className = "" }: { className?: strin
     setOpen(false);
   }
 
-  function onLogout() {
-    const confirmed = window.confirm("是否确认登出账号");
-    if (!confirmed) return;
-    document.cookie = "codegpt_auth=; path=/; max-age=0; samesite=lax";
+  async function confirmLogout() {
+    if (isSupabaseAuthConfigured()) {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } else {
+      document.cookie = "codegpt_auth=; path=/; max-age=0; samesite=lax";
+    }
+    setLogoutConfirmOpen(false);
     router.replace("/login");
     router.refresh();
   }
@@ -104,7 +131,7 @@ export default function UserDropdownMenu({ className = "" }: { className?: strin
               onClick={() => setOpen(false)}
               className="block cursor-pointer rounded-md px-3 py-2 text-center text-base leading-6 text-[var(--app-text)] hover:bg-[var(--app-hover)]"
             >
-              admin
+              {menuLabel || "…"}
             </Link>
           )}
           <button
@@ -117,12 +144,39 @@ export default function UserDropdownMenu({ className = "" }: { className?: strin
           </button>
           <button
             type="button"
-            onClick={onLogout}
+            onClick={() => {
+              setOpen(false);
+              setLogoutConfirmOpen(true);
+            }}
             className="mt-1 flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm text-[var(--app-primary)] hover:bg-[var(--app-hover)]"
           >
             <LogOut className="h-4 w-4" />
             登出
           </button>
+        </div>
+      )}
+      {logoutConfirmOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-4">
+          <div className="w-full max-w-[360px] rounded-xl bg-[var(--app-card)] p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-[var(--app-text)]">提示</h3>
+            <p className="mt-2 text-sm text-[var(--app-text-secondary)]">是否确认登出账号</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setLogoutConfirmOpen(false)}
+                className="h-9 cursor-pointer rounded-md border border-[var(--app-border)] px-4 text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-hover)]"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                className="h-9 cursor-pointer rounded-md bg-[var(--app-primary)] px-4 text-sm text-white hover:opacity-90"
+              >
+                确认
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
