@@ -4,12 +4,14 @@ import Link from "next/link";
 import {
   CheckSquare,
   Layers3,
+  Loader2,
   MessageSquarePlus,
   MoreVertical,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
   UserRound,
+  X,
   XSquare,
 } from "lucide-react";
 
@@ -37,6 +39,7 @@ export type HomeSidebarProps = Readonly<{
   sessionsLoading: boolean;
   sessionsError: string | null;
   debouncedKeyword: string;
+  sessionSearchPending: boolean;
   renameSessionId: string | null;
   renameValue: string;
   onRenameValueChange: (value: string) => void;
@@ -73,6 +76,7 @@ export function HomeSidebar(props: HomeSidebarProps) {
     sessionsLoading,
     sessionsError,
     debouncedKeyword,
+    sessionSearchPending,
     renameSessionId,
     renameValue,
     onRenameValueChange,
@@ -86,6 +90,27 @@ export function HomeSidebar(props: HomeSidebarProps) {
     onMenuBatch,
     onMenuDelete,
   } = props;
+
+  const allSelectedInView =
+    recentSessions.length > 0 && recentSessions.every((s) => selectedSessionIds.includes(s.id));
+
+  const emptyListHint =
+    !sessionsLoading && !sessionsError
+      ? (() => {
+          if (sessionKeyword.trim() !== debouncedKeyword.trim()) return null;
+          if (recentSessions.length > 0) return null;
+          if (!debouncedKeyword.trim()) {
+            return (
+              <div className="rounded px-2 py-2 text-sm text-[var(--app-text-muted)]">暂无最近对话</div>
+            );
+          }
+          return (
+            <div className="rounded px-2 py-2 text-sm text-[var(--app-text-muted)]">
+              未找到标题包含「{debouncedKeyword.trim()}」的会话
+            </div>
+          );
+        })()
+      : null;
 
   return (
     <aside
@@ -146,8 +171,8 @@ export function HomeSidebar(props: HomeSidebarProps) {
                   </button>
                 </div>
               ) : (
-                <div className="flex h-9 items-center rounded-md border border-[var(--app-border)] bg-[var(--app-card)] px-2">
-                  <Search className="h-3.5 w-3.5 text-[var(--app-text-muted)]" />
+                <div className="flex h-9 items-center gap-1 rounded-md border border-[var(--app-border)] bg-[var(--app-card)] px-2">
+                  <Search className="h-3.5 w-3.5 shrink-0 text-[var(--app-text-muted)]" />
                   <input
                     value={sessionKeyword}
                     onChange={(e) => onSessionKeywordChange(e.target.value)}
@@ -156,10 +181,33 @@ export function HomeSidebar(props: HomeSidebarProps) {
                         onShowSessionSearch(false);
                       }
                     }}
-                    placeholder="搜索会话"
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        onSessionKeywordChange("");
+                        onShowSessionSearch(false);
+                      }
+                    }}
+                    placeholder="搜索会话标题…"
                     autoFocus
-                    className="ml-2 w-full bg-transparent text-sm text-[var(--app-text)] outline-none placeholder:text-[var(--app-text-muted)]"
+                    aria-busy={sessionSearchPending || (sessionsLoading && !!sessionKeyword.trim())}
+                    className="min-w-0 flex-1 bg-transparent text-sm text-[var(--app-text)] outline-none placeholder:text-[var(--app-text-muted)]"
                   />
+                  {sessionSearchPending || (sessionsLoading && sessionKeyword.trim()) ? (
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--app-text-muted)]" aria-hidden />
+                  ) : null}
+                  {sessionKeyword.trim() ? (
+                    <button
+                      type="button"
+                      aria-label="清除搜索"
+                      className="shrink-0 cursor-pointer rounded p-0.5 text-[var(--app-text-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        onSessionKeywordChange("");
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -167,7 +215,7 @@ export function HomeSidebar(props: HomeSidebarProps) {
               <div className="mb-2 flex h-10 items-center rounded-md border border-[var(--app-border)] bg-[var(--app-card)] px-2 text-xs">
                 <input
                   type="checkbox"
-                  checked={recentSessions.length > 0 && selectedSessionIds.length === recentSessions.length}
+                  checked={allSelectedInView}
                   onChange={(e) => onToggleSelectAll(e.target.checked)}
                 />
                 <span className="ml-2 text-[var(--app-primary)]">批量删除</span>
@@ -201,13 +249,7 @@ export function HomeSidebar(props: HomeSidebarProps) {
             </div>
           )}
 
-          {!sessionsLoading && !sessionsError && recentSessions.length === 0 && (
-            <div className="rounded px-2 py-2 text-sm text-[var(--app-text-muted)]">暂无最近对话</div>
-          )}
-
-          {!sessionsLoading && !sessionsError && debouncedKeyword.trim() && recentSessions.length === 0 && (
-            <div className="rounded px-2 py-2 text-sm text-[var(--app-text-muted)]">未找到匹配的对话</div>
-          )}
+          {emptyListHint}
 
           {!sessionsLoading &&
             !sessionsError &&
@@ -251,7 +293,7 @@ export function HomeSidebar(props: HomeSidebarProps) {
                       }}
                       title={item.title}
                     >
-                      {item.title}
+                      <SessionTitleHighlight title={item.title} needle={debouncedKeyword} />
                     </button>
                   )}
                   {!batchMode && renameSessionId !== item.id && (
@@ -303,4 +345,31 @@ export function HomeSidebar(props: HomeSidebarProps) {
       </div>
     </aside>
   );
+}
+
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function SessionTitleHighlight({ title, needle }: { title: string; needle: string }) {
+  const q = needle.trim();
+  if (!q) return <span className="truncate">{title}</span>;
+  try {
+    const parts = title.split(new RegExp(`(${escapeRegExp(q)})`, "gi"));
+    return (
+      <span className="truncate">
+        {parts.map((part, i) =>
+          part.toLowerCase() === q.toLowerCase() ? (
+            <mark key={i} className="rounded bg-[var(--app-primary-soft)] px-0.5 text-[var(--app-primary)]">
+              {part}
+            </mark>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </span>
+    );
+  } catch {
+    return <span className="truncate">{title}</span>;
+  }
 }

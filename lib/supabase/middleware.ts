@@ -5,6 +5,8 @@ import { isSupabaseAuthConfigured } from "./env";
 
 const LOGIN_PATH = "/login";
 const REGISTER_PATH = "/register";
+const ADMIN_PATH = "/admin";
+const ADMIN_ROLE = "管理员";
 
 /**
  * Refreshes Auth session + enforces: 未登录 → /login，已登录访问 /login → /
@@ -60,6 +62,19 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/";
     url.searchParams.delete("next");
     return NextResponse.redirect(url);
+  }
+
+  if (user && (path === ADMIN_PATH || path.startsWith(`${ADMIN_PATH}/`))) {
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("user_role")
+      .eq("id", user.id)
+      .maybeSingle();
+    if ((me?.user_role ?? "") !== ADMIN_ROLE) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

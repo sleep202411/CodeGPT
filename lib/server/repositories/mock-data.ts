@@ -10,6 +10,15 @@ export type UserProfileRecord = {
   userEmail: string;
 };
 
+export type AdminUserRecord = {
+  id: string;
+  userName: string;
+  userRole: string;
+  userEmail: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type UploadRecord = {
   id: string;
   name: string;
@@ -60,6 +69,17 @@ const userProfileSeed: UserProfileRecord = {
   userEmail: "admin@codegpt.local",
 };
 
+const adminUsersSeed: AdminUserRecord[] = [
+  {
+    id: "admin-local",
+    userName: "admin",
+    userRole: "管理员",
+    userEmail: "admin@codegpt.local",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 const uploadsSeed: UploadRecord[] = [];
 
 export async function listRecentSessions(): Promise<RecentSessionRecord[]> {
@@ -100,6 +120,10 @@ export async function deleteSessions(ids: string[]): Promise<number> {
 
 export async function getProfile(): Promise<UserProfileRecord> {
   return userProfileSeed;
+}
+
+export async function listAdminUsers(): Promise<AdminUserRecord[]> {
+  return [...adminUsersSeed];
 }
 
 export async function createUploadRecord(input: {

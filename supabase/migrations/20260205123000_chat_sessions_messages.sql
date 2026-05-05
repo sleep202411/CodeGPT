@@ -21,6 +21,11 @@ CREATE INDEX IF NOT EXISTS chat_sessions_user_updated_idx
 CREATE INDEX IF NOT EXISTS chat_messages_session_created_idx
   ON public.chat_messages (session_id, created_at ASC);
 
+-- 侧边栏按会话标题搜索（GET /api/sessions/recent?keyword=）
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX IF NOT EXISTS chat_sessions_title_trgm_idx
+  ON public.chat_sessions USING gin (title gin_trgm_ops);
+
 ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 

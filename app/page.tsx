@@ -47,7 +47,8 @@ export default function Home() {
       setSessionsLoading(true);
       setSessionsError(null);
       try {
-        const query = debouncedKeyword.trim() ? `?keyword=${encodeURIComponent(debouncedKeyword.trim())}` : "";
+        const q = debouncedKeyword.trim().slice(0, 128);
+        const query = q ? `?keyword=${encodeURIComponent(q)}` : "";
         const res = await fetch(`${RECENT_SESSIONS_API}${query}`, {
           method: "GET",
           signal,
@@ -283,6 +284,7 @@ export default function Home() {
         sessionsLoading={sessionsLoading}
         sessionsError={sessionsError}
         debouncedKeyword={debouncedKeyword}
+        sessionSearchPending={sessionKeyword.trim() !== debouncedKeyword.trim()}
         renameSessionId={renameSessionId}
         renameValue={renameValue}
         onRenameValueChange={setRenameValue}
