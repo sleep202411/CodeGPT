@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { ArrowLeft, ShieldCheck, Users } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, Pencil, ShieldCheck, Users } from "lucide-react";
 import UserDropdownMenu from "@/components/UserDropdownMenu";
+
+const MAX_USER_NAME_LEN = 48;
 
 type AdminUser = {
   id: string;
@@ -25,36 +27,97 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editUser, setEditUser] = useState<AdminUser | null>(null);
+  const [editNameDraft, setEditNameDraft] = useState("");
+  const [editModalError, setEditModalError] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const loadUsers = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "GET",
+        cache: "no-store",
+        signal,
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        users?: AdminUser[];
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(data.error || `请求失败 (${res.status})`);
+      }
+      setUsers(Array.isArray(data.users) ? data.users : []);
+    } catch (err) {
+      if (signal?.aborted) return;
+      setError(err instanceof Error ? err.message : "加载失败");
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/admin/users", {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        const data = (await res.json().catch(() => ({}))) as {
-          users?: AdminUser[];
-          error?: string;
-        };
-        if (!res.ok) {
-          throw new Error(data.error || `请求失败 (${res.status})`);
-        }
-        setUsers(Array.isArray(data.users) ? data.users : []);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setError(err instanceof Error ? err.message : "加载失败");
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    })();
-
+    void loadUsers(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [loadUsers]);
+
+  function openEditModal(u: AdminUser) {
+    setEditUser(u);
+    setEditNameDraft(u.userName || "");
+    setEditModalError(null);
+  }
+
+  function closeEditModal() {
+    if (savingEdit) return;
+    setEditUser(null);
+    setEditModalError(null);
+  }
+
+  async function submitEditUser() {
+    if (!editUser) return;
+    const trimmed = editNameDraft.trim();
+    if (!trimmed) {
+      setEditModalError("用户名不能为空");
+      return;
+    }
+    if (trimmed.length > MAX_USER_NAME_LEN) {
+      setEditModalError(`用户名不能超过 ${MAX_USER_NAME_LEN} 个字符`);
+      return;
+    }
+    const nameUnchanged = trimmed === (editUser.userName ?? "").trim();
+    if (nameUnchanged) {
+      closeEditModal();
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditModalError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(editUser.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userName: trimmed,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { user?: AdminUser; error?: string };
+      if (!res.ok) {
+        throw new Error(data.error || `保存失败 (${res.status})`);
+      }
+      const updated = data.user;
+      if (!updated) {
+        throw new Error("接口未返回用户信息");
+      }
+      setUsers((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+      closeEditModal();
+    } catch (err) {
+      setEditModalError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   return (
     <main className="min-h-screen [background:var(--manager-bg-color,#2a84eb)]">
@@ -99,6 +162,7 @@ export default function AdminPage() {
                   <th className="px-3 py-2 font-medium">邮箱</th>
                   <th className="px-3 py-2 font-medium">创建时间</th>
                   <th className="px-3 py-2 font-medium">更新时间</th>
+                  <th className="w-[100px] px-3 py-2 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,18 +174,28 @@ export default function AdminPage() {
                       <td className="px-3 py-2">{u.userEmail || "-"}</td>
                       <td className="px-3 py-2">{formatDateTime(u.createdAt)}</td>
                       <td className="px-3 py-2">{formatDateTime(u.updatedAt)}</td>
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(u)}
+                          className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[var(--app-primary)] hover:bg-[var(--app-primary-soft)]"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          编辑
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 {!loading && users.length === 0 ? (
                   <tr>
-                    <td className="px-3 py-5 text-[var(--app-text-muted)]" colSpan={5}>
+                    <td className="px-3 py-5 text-[var(--app-text-muted)]" colSpan={6}>
                       暂无用户数据
                     </td>
                   </tr>
                 ) : null}
                 {loading ? (
                   <tr>
-                    <td className="px-3 py-5 text-[var(--app-text-muted)]" colSpan={5}>
+                    <td className="px-3 py-5 text-[var(--app-text-muted)]" colSpan={6}>
                       正在加载用户信息...
                     </td>
                   </tr>
@@ -131,6 +205,74 @@ export default function AdminPage() {
           </div>
         </section>
       </section>
+
+      {editUser ? (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="admin-edit-user-title"
+          onClick={closeEditModal}
+        >
+          <div
+            className="w-full max-w-[400px] rounded-xl bg-[var(--app-card)] p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="admin-edit-user-title" className="text-base font-semibold text-[var(--app-text)]">
+              编辑用户
+            </h3>
+            <p className="mt-1 truncate text-xs text-[var(--app-text-muted)]" title={editUser.userEmail}>
+              {editUser.userEmail || "无邮箱"}
+            </p>
+
+            <label htmlFor="admin-edit-name" className="mt-4 block text-sm text-[var(--app-text-secondary)]">
+              用户名
+            </label>
+            <input
+              id="admin-edit-name"
+              type="text"
+              autoFocus
+              value={editNameDraft}
+              maxLength={MAX_USER_NAME_LEN}
+              onChange={(e) => {
+                setEditNameDraft(e.target.value);
+                if (editModalError) setEditModalError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") closeEditModal();
+              }}
+              disabled={savingEdit}
+              className="mt-1.5 h-10 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm text-[var(--app-text)] outline-none focus:border-[var(--app-primary)] focus:ring-1 focus:ring-[var(--app-primary)] disabled:opacity-50"
+              placeholder="用户名"
+            />
+
+            {editModalError ? (
+              <p className="mt-3 text-sm text-[#e54949]" role="alert">
+                {editModalError}
+              </p>
+            ) : null}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={savingEdit}
+                onClick={closeEditModal}
+                className="h-9 cursor-pointer rounded-md border border-[var(--app-border)] px-4 text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-hover)] disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={savingEdit}
+                onClick={() => void submitEditUser()}
+                className="h-9 cursor-pointer rounded-md bg-[var(--app-primary)] px-4 text-sm text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {savingEdit ? "保存中…" : "保存"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+import { useEffect, useRef, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import type { Message } from "ai";
 
 import ChatInput, { type ChatUploadAttachment } from "@/components/ChatInput";
@@ -8,6 +8,9 @@ import ChatOutput from "@/components/ChatOutput";
 import UserDropdownMenu from "@/components/UserDropdownMenu";
 
 const DISCLAIMER = "内容由AI生成，仅供参考。请遵守平台用户协议和隐私政策。";
+
+/** 对话主列上限，避免在大屏/DevTools 并排时铺满显得过宽 */
+const CHAT_COLUMN_MAX = "max-w-3xl";
 
 type ChatMainPanelProps = Readonly<{
   input: string;
@@ -30,10 +33,21 @@ export function ChatMainPanel({
   onAttachmentsChange,
   onUploadingChange,
 }: ChatMainPanelProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const empty = messages.length === 0;
 
+  useEffect(() => {
+    if (empty) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const frame = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [empty, messages, status]);
+
   const inputBlock = (
-    <div className="w-full max-w-4xl rounded-xl border border-[var(--app-border)] bg-[var(--app-card)] px-3 py-3 shadow-sm">
+    <div className={`w-full ${CHAT_COLUMN_MAX} rounded-xl border border-[var(--app-border)] bg-[var(--app-card)] px-3 py-3 shadow-sm`}>
       <ChatInput
         input={input}
         handleInputChange={handleInputChange}
@@ -65,12 +79,12 @@ export function ChatMainPanel({
           </div>
         ) : (
           <>
-            <div className="flex min-h-0 flex-1 flex-col items-center overflow-auto">
-              <div className="w-full max-w-4xl py-6">
+            <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-auto">
+              <div className={`mx-auto w-full ${CHAT_COLUMN_MAX} py-6`}>
                 <ChatOutput messages={messages} status={status} />
               </div>
             </div>
-            <div className="mx-auto w-full max-w-4xl">{inputBlock}</div>
+            <div className={`mx-auto w-full ${CHAT_COLUMN_MAX}`}>{inputBlock}</div>
             <p className="pt-4 text-center text-xs text-[var(--app-text-muted)]">{DISCLAIMER}</p>
           </>
         )}

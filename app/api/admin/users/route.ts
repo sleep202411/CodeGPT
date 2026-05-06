@@ -1,6 +1,4 @@
-import { listAdminUsers } from "@/lib/server/repositories/mock-data";
 import { createSupabaseAdmin } from "@/lib/server/supabase-admin";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -19,14 +17,6 @@ type UserRow = {
 
 export async function GET() {
   try {
-    if (!isSupabaseAuthConfigured()) {
-      const users = await listAdminUsers();
-      return Response.json(
-        { users },
-        { headers: { "Cache-Control": "no-store" } }
-      );
-    }
-
     const auth = await createServerSupabase();
     const {
       data: { user },

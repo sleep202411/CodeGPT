@@ -7,11 +7,9 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const useSupabase = isSupabaseAuthConfigured();
   const [email, setEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
@@ -19,20 +17,6 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  if (!useSupabase) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#eef3fb] px-6">
-        <div className="max-w-md rounded-2xl border border-[#dfe7f4] bg-white p-8 text-center shadow-sm">
-          <p className="text-[#4f5f75]">未配置 Supabase，无法使用在线注册。</p>
-          <p className="mt-2 text-sm text-[#8c9aaf]">请在 .env.local 中配置 NEXT_PUBLIC_SUPABASE_URL 与 NEXT_PUBLIC_SUPABASE_ANON_KEY。</p>
-          <Link href="/login" className="mt-6 inline-block text-[#1f7be9] hover:underline">
-            返回登录
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

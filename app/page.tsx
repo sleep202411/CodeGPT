@@ -6,6 +6,7 @@ import type { Message } from "ai";
 import { ChatMainPanel } from "@/components/home/ChatMainPanel";
 import { HomeSidebar } from "@/components/home/HomeSidebar";
 import type { ChatUploadAttachment } from "@/components/ChatInput";
+import { ATTACH_UI_PLACEHOLDER_URL } from "@/lib/chat/attachment-display-meta";
 import { buildMessageWithAttachments, isUuid } from "@/lib/chat/build-user-message";
 import { RECENT_SESSIONS_API } from "@/lib/api/sessions-constants";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
@@ -138,35 +139,52 @@ export default function Home() {
       return;
     }
 
-    if (!useServerAttachmentIds) {
-      const combined = buildMessageWithAttachments(question, chatAttachments);
-      if (combined.length > MAX_USER_MESSAGE_CHARS) {
+    if (chatAttachments.length > 0) {
+      const mergedLen = buildMessageWithAttachments(question, chatAttachments).length;
+      if (mergedLen > MAX_USER_MESSAGE_CHARS) {
         alert(
-          `合并附件后的正文过长（约 ${combined.length} 字），服务端上限 ${MAX_USER_MESSAGE_CHARS} 字，请减少附件或缩短内容`
+          `合并附件后的正文过长（约 ${mergedLen} 字），服务端上限 ${MAX_USER_MESSAGE_CHARS} 字，请减少附件或缩短内容`
         );
         return;
       }
     }
 
+    const userLine = question || (chatAttachments.length > 0 ? "请结合附件内容回答。" : "");
+    const requestBody = {
+      sessionId: activeSessionId ?? undefined,
+      userQuestion: question,
+      ...(useServerAttachmentIds
+        ? { attachmentIds: chatAttachments.map((a) => a.fileId!) }
+        : chatAttachments.length > 0
+          ? {
+              attachmentRowsFallback: chatAttachments.map((a) => ({
+                file_name: a.name,
+                kind: (a.category === "image" ? "ocr_image" : "code") as "code" | "ocr_image",
+                extracted_text: a.extractedText?.trim() ?? "",
+              })),
+            }
+          : {}),
+    };
+
     setInput("");
     setChatAttachments([]);
 
-    if (useServerAttachmentIds) {
-      await append(
-        { role: "user", content: question || "请根据附件内容回答。" },
-        {
-          body: {
-            sessionId: activeSessionId ?? undefined,
-            attachmentIds: chatAttachments.map((a) => a.fileId!),
-          },
-        }
-      );
-    } else {
-      await append(
-        { role: "user", content: buildMessageWithAttachments(question, chatAttachments) },
-        { body: { sessionId: activeSessionId ?? undefined } }
-      );
-    }
+    await append(
+      {
+        role: "user",
+        content: userLine,
+        ...(chatAttachments.length > 0
+          ? {
+              experimental_attachments: chatAttachments.map((a) => ({
+                name: a.name,
+                contentType: `${a.mimeType || "application/octet-stream"}; x-codegpt-size=${a.size}`,
+                url: ATTACH_UI_PLACEHOLDER_URL,
+              })),
+            }
+          : {}),
+      },
+      { body: requestBody }
+    );
     fetchRecentSessions();
   }
 

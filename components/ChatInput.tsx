@@ -8,6 +8,7 @@ import {
   IMAGE_MAX_BYTES,
   MAX_ATTACHMENTS_PER_MESSAGE,
 } from "@/lib/upload-policy";
+import { draftAttachmentToUiParts } from "@/lib/chat/attachment-display-meta";
 
 export type ChatUploadAttachment = {
   id: string;
@@ -38,6 +39,7 @@ export default function ChatInput({
   onAttachmentsChange,
   onUploadingChange,
 }: ChatInputProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -88,42 +90,52 @@ export default function ChatInput({
   const codeMb = Math.floor(CODE_FILE_MAX_BYTES / (1024 * 1024));
   const imageMb = Math.floor(IMAGE_MAX_BYTES / (1024 * 1024));
 
+  const canSend =
+    input.trim().length > 0 || attachments.some((a) => Boolean(a.extractedText?.trim()));
+
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
       className="relative w-full rounded-md border border-[var(--app-border)] bg-[var(--app-card)] px-4 py-3 focus-within:border-[var(--app-primary)]"
     >
       {attachments.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
-          {attachments.map((file, idx) => (
-            <div
-              key={`${file.id}-${idx}`}
-              className="flex max-w-[220px] flex-col gap-0.5 rounded bg-[var(--app-hover)] px-2 py-1 text-xs text-[var(--app-text-secondary)]"
-              title={
-                file.extractedText
-                  ? `${file.name}\n\n${file.extractedText.slice(0, 2000)}${file.extractedText.length > 2000 ? "…" : ""}`
-                  : file.name
-              }
-            >
-              <div className="flex items-center gap-1">
-                <span className="truncate">{file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => removeAttachment(idx)}
-                  className="cursor-pointer shrink-0 rounded p-0.5 hover:bg-[var(--app-border)]"
-                  aria-label="移除附件"
+          {attachments.map((file, idx) => {
+            const { line1, line2 } = draftAttachmentToUiParts(file);
+            const isImg = file.category === "image";
+            return (
+              <div
+                key={`${file.id}-${idx}`}
+                title={file.name}
+                className="flex max-w-[280px] gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-hover)]/60 px-2.5 py-2 text-xs text-[var(--app-text-secondary)]"
+              >
+                <div
+                  className={
+                    isImg
+                      ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--app-primary-soft)] text-[var(--app-primary)]"
+                      : "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--app-surface)] text-[var(--app-text-secondary)]"
+                  }
                 >
-                  <X className="h-3 w-3" />
-                </button>
+                  {isImg ? <ImageIcon className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1">
+                    <span className="truncate text-[13px] font-semibold text-[var(--app-text)]">{line1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(idx)}
+                      className="cursor-pointer shrink-0 rounded p-0.5 hover:bg-[var(--app-border)]"
+                      aria-label="移除附件"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <p className="mt-0.5 truncate text-[11px] text-[var(--app-text-muted)]">{line2}</p>
+                </div>
               </div>
-              {file.extractedText ? (
-                <span className="line-clamp-2 text-[10px] text-[var(--app-text-muted)]">
-                  {file.category === "image" ? "已识别文字：" : "已读取："}{file.extractedText.slice(0, 120)}
-                  {file.extractedText.length > 120 ? "…" : ""}
-                </span>
-              ) : null}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -132,8 +144,24 @@ export default function ChatInput({
 
       <textarea
         onChange={handleInputChange}
+        onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+          if (e.key !== "Enter") return;
+          if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return;
+          if (e.nativeEvent.isComposing) return;
+          if (uploading || !canSend) return;
+          e.preventDefault();
+          const form = formRef.current;
+          if (!form) return;
+          handleSubmit({
+            preventDefault() {},
+            stopPropagation() {},
+            currentTarget: form,
+            target: form,
+          } as unknown as React.FormEvent<HTMLFormElement>);
+        }}
         value={input}
         placeholder="请输入问题"
+        title="Enter 发送，Shift+Enter 换行"
         rows={3}
         className="w-full resize-none border-0 bg-transparent px-0 pb-10 pr-14 text-sm leading-6 text-[var(--app-text)] outline-none placeholder:text-[var(--app-text-muted)]"
       />
@@ -211,7 +239,7 @@ export default function ChatInput({
 
       <Button
         type="submit"
-        disabled={uploading}
+        disabled={uploading || !canSend}
         className="absolute bottom-3 right-3 h-9 w-9 cursor-pointer rounded-md bg-[var(--app-primary)] p-0 text-white shadow-none hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <ArrowUp className="h-4.5 w-4.5" />

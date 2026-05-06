@@ -1,57 +1,67 @@
 "use client";
-import type {
-    Message
-} from 'ai';
+import type { Message } from "ai";
 import { useState } from "react";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
+import { UserAttachmentBubble } from "@/components/chat/UserAttachmentBubble";
+import { parseStoredAttachmentBubble } from "@/lib/chat/parse-stored-attachment-message";
+import { bubblePartsFromStored, sdkAttachmentParts } from "@/lib/chat/attachment-display-meta";
 
 interface ChatOUtputProps {
-    messages: Message[];
-    status: string
+  messages: Message[];
+  status: string;
 }
 
-export default function ChatOutput({
-    messages,
-    status
-}: ChatOUtputProps) {
-    return (
-        <>
-            {
-                messages.map((message,index)=>
-                message.role==="user"?(
-                    <UserChat key={index} content={message.content} />
-                ):(
-                    <AssistantChat key={index} content={message.content} />
-                )
-                )
-            }
-            {
-                status==="submitted" &&(
-                    <div className='text-muted-foreground'>
-                        Generating response....
-                    </div>
-                )
-            }
-            {
-                status==="error" &&(
-                    <div className='text-red-500'>An error occurred.</div>
-                )
-            }
-        </>
-    )
+function isImageishKind(labelOrMime: string): boolean {
+  const s = labelOrMime.toLowerCase();
+  return s.includes("ocr") || s.includes("截图") || s.includes("image");
 }
 
-const UserChat = ({ content }: { content: string }) => {
-    return (
-        <div className="mb-2 ml-auto max-w-[80%] w-fit rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] px-4 py-2.5 shadow-sm">
-            <div className="whitespace-pre-wrap text-[15px] leading-7 text-[var(--app-text)]">{content}</div>
-        </div>
-    );
+export default function ChatOutput({ messages, status }: ChatOUtputProps) {
+  return (
+    <>
+      {messages.map((message, index) =>
+        message.role === "user" ? (
+          <UserChat key={index} message={message} />
+        ) : (
+          <AssistantChat key={index} content={message.content} />
+        )
+      )}
+      {status === "submitted" && <div className="text-muted-foreground">Generating response....</div>}
+      {status === "error" && <div className="text-red-500">An error occurred.</div>}
+    </>
+  );
+}
+
+const UserChat = ({ message }: { message: Message }) => {
+  const parsed = parseStoredAttachmentBubble(message.content);
+  if (parsed) {
+    const cards = parsed.files.map((f) => ({
+      parts: bubblePartsFromStored(f),
+      imageish: isImageishKind(f.kindLabel),
+    }));
+    return <UserAttachmentBubble text={parsed.question} cards={cards} />;
+  }
+
+  const att = message.experimental_attachments;
+  if (att && att.length > 0) {
+    const cards = att.map((a) => {
+      const parts = sdkAttachmentParts(a);
+      const imageish = isImageishKind(a.contentType ?? "") || /\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(parts.line1);
+      return { parts, imageish };
+    });
+    return <UserAttachmentBubble text={message.content} cards={cards} />;
+  }
+
+  return (
+    <div className="mb-2 ml-auto w-fit max-w-[80%] rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] px-4 py-2.5 shadow-sm">
+      <div className="whitespace-pre-wrap text-[15px] leading-7 text-[var(--app-text)]">{message.content}</div>
+    </div>
+  );
 };
 
-const AssistantChat=({content}:{content:string})=>{
-    return(
-        <div className='pr-8 w-full mb-2 pl-2'>
+const AssistantChat = ({ content }: { content: string }) => {
+  return (
+        <div className="mb-2 w-full max-w-full pl-1 pr-6 sm:pr-8">
             <ReactMarkdown
             components={{
             a:({href,children})=>(
@@ -102,8 +112,8 @@ const AssistantChat=({content}:{content:string})=>{
                 return <CopyableCodeBlock code={text.replace(/\n$/, "")} language={language} />;
             }}}>{content}</ReactMarkdown>
         </div>
-    )
-}
+  );
+};
 
 function CopyableCodeBlock({ code, language }: { code: string; language: string }) {
     const [copied, setCopied] = useState(false);

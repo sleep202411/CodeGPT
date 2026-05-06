@@ -121,6 +121,14 @@ export async function POST(req: Request) {
             messages?: Array<{ role: string; content: string }>;
             sessionId?: string;
             attachmentIds?: string[];
+            /** 用户输入框纯文本（气泡与标题用；服务端再与附件正文合并） */
+            userQuestion?: string;
+            /** 未入库附件（演示模式）：仅服务端用于合并进模型上下文，不写进消息的展示 content */
+            attachmentRowsFallback?: Array<{
+                file_name: string;
+                kind: "code" | "ocr_image";
+                extracted_text: string;
+            }>;
         };
         const attachmentIds = Array.isArray(body.attachmentIds)
             ? body.attachmentIds.filter((id): id is string => typeof id === "string" && id.length > 0)
@@ -141,7 +149,8 @@ export async function POST(req: Request) {
         }
 
         const rawUserLine = String(messagesCore[lastUserIdx].content ?? "");
-        const userQuestionPlain = rawUserLine.trim();
+        const clientQuestionHint =
+            typeof body.userQuestion === "string" ? body.userQuestion.trim() : "";
 
         const authClient = await createServerSupabase();
         const {
@@ -177,14 +186,41 @@ export async function POST(req: Request) {
             if (!rows || rows.length !== attachmentIds.length) {
                 return Response.json({ error: "附件不存在或无权访问" }, { status: 400 });
             }
+            /* 不信任客户端展示的合并正文，按库中附件与用户纯问题重新合并，避免丢失附件或重复拼装 */
             const merged = mergeAttachmentsWithQuestion(
                 rows.map((r) => ({
                     file_name: r.file_name,
                     kind: r.kind as "code" | "ocr_image",
                     extracted_text: r.extracted_text,
                 })),
-                rawUserLine
+                clientQuestionHint || rawUserLine.trim()
             );
+            const next = [...messagesCore] as CoreMessage[];
+            next[lastUserIdx] = { role: "user", content: merged };
+            messagesCore = next;
+        } else if (Array.isArray(body.attachmentRowsFallback) && body.attachmentRowsFallback.length > 0) {
+            const raw = body.attachmentRowsFallback;
+            if (raw.length > MAX_ATTACHMENTS_PER_MESSAGE) {
+                return Response.json(
+                    {
+                        error: `单次最多引用 ${MAX_ATTACHMENTS_PER_MESSAGE} 个附件，请删减后重试`,
+                        code: "TOO_MANY_ATTACHMENTS",
+                        max: MAX_ATTACHMENTS_PER_MESSAGE,
+                    },
+                    { status: 400 }
+                );
+            }
+            const rows: Array<{ file_name: string; kind: "code" | "ocr_image"; extracted_text: string }> = [];
+            for (const r of raw) {
+                const file_name = typeof r.file_name === "string" ? r.file_name.trim() : "";
+                const kind = r.kind === "ocr_image" || r.kind === "code" ? r.kind : null;
+                const extracted_text = typeof r.extracted_text === "string" ? r.extracted_text : "";
+                if (!file_name || !kind || !extracted_text.trim()) {
+                    return Response.json({ error: "附件数据无效" }, { status: 400 });
+                }
+                rows.push({ file_name, kind, extracted_text });
+            }
+            const merged = mergeAttachmentsWithQuestion(rows, clientQuestionHint || rawUserLine.trim());
             const next = [...messagesCore] as CoreMessage[];
             next[lastUserIdx] = { role: "user", content: merged };
             messagesCore = next;
@@ -209,7 +245,7 @@ export async function POST(req: Request) {
         const supabase = createSupabaseAdmin();
         let resolvedSessionId = body.sessionId?.trim() || "";
         if (!resolvedSessionId) {
-            const title = deriveSessionTitle(userQuestionPlain || latestMessage);
+            const title = deriveSessionTitle(clientQuestionHint || latestMessage);
             const { data: created, error: createError } = await supabase
                 .from("chat_sessions")
                 .insert({ user_id: user.id, title })
@@ -268,7 +304,7 @@ export async function POST(req: Request) {
                 if (currentSession?.title === DEFAULT_SESSION_TITLE) {
                     await admin
                         .from("chat_sessions")
-                        .update({ title: deriveSessionTitle(userQuestionPlain || latestMessage) })
+                        .update({ title: deriveSessionTitle(clientQuestionHint || latestMessage) })
                         .eq("id", resolvedSessionId)
                         .eq("user_id", user.id);
                 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createSupabaseAdmin } from "@/lib/server/supabase-admin";
-import { createUploadRecord } from "@/lib/server/repositories/mock-data";
 import { ocrImageFromBuffer } from "@/lib/server/ocr-image";
 import {
   CODE_FILE_MAX_BYTES,
@@ -114,55 +113,37 @@ async function persistAndRespond(
   kind: "code" | "ocr_image",
   extractedText: string
 ) {
-  try {
-    const admin = createSupabaseAdmin();
-    const { data: row, error } = await admin
-      .from("chat_attachments")
-      .insert({
-        user_id: userId,
-        file_name: name,
-        mime_type: mimeType,
-        size_bytes: size,
-        kind,
-        extracted_text: extractedText,
-      })
-      .select("id")
-      .single();
+  const admin = createSupabaseAdmin();
+  const { data: row, error } = await admin
+    .from("chat_attachments")
+    .insert({
+      user_id: userId,
+      file_name: name,
+      mime_type: mimeType,
+      size_bytes: size,
+      kind,
+      extracted_text: extractedText,
+    })
+    .select("id")
+    .single();
 
-    if (error || !row) {
-      throw error;
-    }
-
-    const fileId = row.id as string;
-    const upload = {
-      id: fileId,
-      name,
-      size,
-      mimeType,
-      category: kind === "ocr_image" ? ("image" as const) : ("document" as const),
-      createdAt: new Date().toISOString(),
-      extractedText,
-    };
-
-    return NextResponse.json(
-      { fileId, upload, extractedText },
-      { headers: { "Cache-Control": "no-store" } }
-    );
-  } catch {
-    const upload = await createUploadRecord({
-      name,
-      size,
-      mimeType,
-      extractedText,
-    });
-    return NextResponse.json(
-      {
-        fileId: null as string | null,
-        upload,
-        extractedText,
-        warning: "附件未写入数据库（请检查 SUPABASE_URL / SUPABASE_KEY），已退回本地演示模式",
-      },
-      { headers: { "Cache-Control": "no-store" } }
-    );
+  if (error || !row) {
+    throw error ?? new Error("附件写入失败");
   }
+
+  const fileId = row.id as string;
+  const upload = {
+    id: fileId,
+    name,
+    size,
+    mimeType,
+    category: kind === "ocr_image" ? ("image" as const) : ("document" as const),
+    createdAt: new Date().toISOString(),
+    extractedText,
+  };
+
+  return NextResponse.json(
+    { fileId, upload, extractedText },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

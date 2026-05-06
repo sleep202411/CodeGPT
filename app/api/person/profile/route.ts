@@ -1,21 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { getProfile } from "@/lib/server/repositories/mock-data";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    if (!isSupabaseAuthConfigured()) {
-      const profile = await getProfile();
-      return NextResponse.json(
-        { profile },
-        { headers: { "Cache-Control": "no-store" } }
-      );
-    }
-
     const supabase = await createServerSupabase();
     const {
       data: { user },
@@ -80,10 +70,6 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    if (!isSupabaseAuthConfigured()) {
-      return NextResponse.json({ error: "未启用 Supabase，无法修改资料" }, { status: 501 });
-    }
-
     const body = (await request.json()) as { userName?: string };
     const userName = body.userName?.trim();
     if (!userName) {

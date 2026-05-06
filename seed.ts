@@ -121,7 +121,7 @@ function isAllowedDocUrl(url: string, allowedPrefixes: string[]): boolean {
 }
 
 async function loadFromWebpages(urls: string[]) {
-  const allChunks: CodeChunk[] = [];
+    const allChunks: CodeChunk[] = [];
   const allowedPrefixes = buildAllowedPrefixes(urls);
   const queue: Array<{ url: string; depth: number }> = urls.map((url) => ({ url, depth: 0 }));
   const visited = new Set<string>();
@@ -228,8 +228,8 @@ async function vectorizeAndStore(chunks: CodeChunk[]) {
 }
 
 async function loadFromCodeFiles(filePaths: string[]) {
-  const allChunks: CodeChunk[] = [];
-  for (const filePath of filePaths) {
+    const allChunks: CodeChunk[] = [];
+    for (const filePath of filePaths) {
     const files = collectCodeFiles(filePath);
     for (const file of files) {
       const content = fs.readFileSync(file, "utf8");
@@ -237,7 +237,7 @@ async function loadFromCodeFiles(filePaths: string[]) {
       allChunks.push(...splitIntoChunks(content, file, language));
     }
   }
-  await vectorizeAndStore(allChunks);
+    await vectorizeAndStore(allChunks);
 }
 
 async function main() {
@@ -254,12 +254,12 @@ async function main() {
   if (codePaths.length === 0) {
     console.log("ℹ️ 请在 seed.ts 中配置代码文件路径");
   }
-  if (codePaths.length > 0) {
-    await loadFromCodeFiles(codePaths);
-  }
-  if (codeDocUrls.length > 0) {
-    await loadFromWebpages(codeDocUrls);
-  }
+    if (codePaths.length > 0) {
+        await loadFromCodeFiles(codePaths);
+    }
+    if (codeDocUrls.length > 0) {
+        await loadFromWebpages(codeDocUrls);
+    }
 }
 
 main().catch(console.error);

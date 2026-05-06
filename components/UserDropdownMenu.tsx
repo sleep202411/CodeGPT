@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Moon, ShieldCheck, Sun, UserRound } from "lucide-react";
 
 import { fetchUserProfile } from "@/lib/api/person-client";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 
 const THEME_ENUM_LOCAL_STORAGE_KEY = "theme";
 
@@ -36,11 +35,6 @@ export default function UserDropdownMenu({ className = "" }: { className?: strin
   }, []);
 
   useEffect(() => {
-    if (!isSupabaseAuthConfigured()) {
-      setMenuLabel("admin");
-      setIsAdmin(true);
-      return;
-    }
     // 个人中心页本身会拉 profile，这里再请求会重复；该页也不展示「进个人中心」入口
     if (pathname.startsWith("/person")) {
       return;
@@ -102,11 +96,7 @@ export default function UserDropdownMenu({ className = "" }: { className?: strin
   }
 
   async function confirmLogout() {
-    if (isSupabaseAuthConfigured()) {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } else {
-      document.cookie = "codegpt_auth=; path=/; max-age=0; samesite=lax";
-    }
+    await fetch("/api/auth/logout", { method: "POST" });
     setLogoutConfirmOpen(false);
     router.replace("/login");
     router.refresh();

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Pencil, Shield, UserRound } from "lucide-react";
 import UserDropdownMenu from "@/components/UserDropdownMenu";
 import { updateUserProfileName, fetchUserProfile } from "@/lib/api/person-client";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 import type { UserProfile } from "@/lib/types/profile";
 
 export default function PersonPage() {
@@ -16,7 +15,6 @@ export default function PersonPage() {
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameDraft, setRenameDraft] = useState("");
   const [renameModalError, setRenameModalError] = useState<string | null>(null);
-  const [supabaseHintOpen, setSupabaseHintOpen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,10 +38,6 @@ export default function PersonPage() {
   }, []);
 
   function openRenameUserNameModal() {
-    if (!isSupabaseAuthConfigured()) {
-      setSupabaseHintOpen(true);
-      return;
-    }
     if (!profile) return;
     setRenameDraft(profile.userName);
     setRenameModalError(null);
@@ -193,37 +187,6 @@ export default function PersonPage() {
         </div>
       ) : null}
 
-      {supabaseHintOpen ? (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="supabase-hint-title"
-          onClick={() => setSupabaseHintOpen(false)}
-        >
-          <div
-            className="w-full max-w-[360px] rounded-xl bg-[var(--app-card)] p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="supabase-hint-title" className="text-base font-semibold text-[var(--app-text)]">
-              提示
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--app-text-secondary)]">
-              未配置 Supabase 时无法保存用户名。请在 .env.local 中设置 NEXT_PUBLIC_SUPABASE_URL 与
-              NEXT_PUBLIC_SUPABASE_ANON_KEY，并执行 profiles 相关数据库迁移脚本。
-            </p>
-            <div className="mt-5 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSupabaseHintOpen(false)}
-                className="h-9 cursor-pointer rounded-md bg-[var(--app-primary)] px-4 text-sm text-white hover:opacity-90"
-              >
-                知道了
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </main>
   );
 }

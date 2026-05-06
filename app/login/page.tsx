@@ -8,13 +8,10 @@ import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSafePostAuthRedirect } from "@/lib/auth-redirect";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 
 export default function LoginPage() {
   const router = useRouter();
-  const useSupabase = isSupabaseAuthConfigured();
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,34 +22,17 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    if (useSupabase) {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
-      });
-      const data = (await res.json()) as { error?: string };
-      setLoading(false);
-      if (!res.ok) {
-        setError(data.error || "登录失败");
-        return;
-      }
-      router.replace(getSafePostAuthRedirect());
-      router.refresh();
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    if (username.trim() !== "admin" || password !== "admin123") {
-      setLoading(false);
-      setError("用户名或密码错误");
-      return;
-    }
-
-    document.cookie = `codegpt_auth=admin; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
-
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+    const data = (await res.json()) as { error?: string };
     setLoading(false);
+    if (!res.ok) {
+      setError(data.error || "登录失败");
+      return;
+    }
     router.replace(getSafePostAuthRedirect());
     router.refresh();
   }
@@ -60,41 +40,22 @@ export default function LoginPage() {
   return (
     <AuthPageShell title="欢迎使用">
           <form onSubmit={onSubmit} className="mt-14 space-y-6">
-            {useSupabase ? (
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-[#4f5f75]">
-                  邮箱
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="请输入邮箱"
-                  className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium text-[#4f5f75]">
-                  用户名
-                </label>
-                <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="请输入用户名"
-                  className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-[#4f5f75]">
+                邮箱
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="请输入邮箱"
+                className="h-14 rounded-xl border-[#d4deec] bg-[#f7faff] text-base focus-visible:ring-[#95baf3]"
+              />
+            </div>
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-[#4f5f75]">
                 密码
@@ -144,20 +105,12 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {useSupabase ? (
-            <p className="mt-6 text-center text-sm text-[#6b7a90]">
-              还没有账号？{" "}
-              <Link href="/register" className="font-medium text-[#1f7be9] hover:underline">
-                去注册
-              </Link>
-            </p>
-          ) : (
-            <p className="mt-4 text-xs text-[#8c9aaf]">
-              未配置 Supabase 时使用本地演示：用户名{" "}
-              <span className="font-medium text-[#4f5f75]">admin</span>，密码{" "}
-              <span className="font-medium text-[#4f5f75]">admin123</span>
-            </p>
-          )}
+          <p className="mt-6 text-center text-sm text-[#6b7a90]">
+            还没有账号？{" "}
+            <Link href="/register" className="font-medium text-[#1f7be9] hover:underline">
+              去注册
+            </Link>
+          </p>
     </AuthPageShell>
   );
 }
