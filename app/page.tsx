@@ -12,6 +12,7 @@ import { RECENT_SESSIONS_API } from "@/lib/api/sessions-constants";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import type { RecentSession } from "@/lib/types/session";
 import { MAX_ATTACHMENTS_PER_MESSAGE, MAX_USER_MESSAGE_CHARS } from "@/lib/upload-policy";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 export default function Home() {
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
@@ -28,6 +29,7 @@ export default function Home() {
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [sessionsLoadingAction, setSessionsLoadingAction] = useState(false);
+  const [deleteTargetIds, setDeleteTargetIds] = useState<string[] | null>(null);
   const [chatAttachments, setChatAttachments] = useState<ChatUploadAttachment[]>([]);
   const [attachmentsUploading, setAttachmentsUploading] = useState(false);
   const { input, messages, status, handleInputChange, append, setMessages, setInput } = useChat({
@@ -196,10 +198,18 @@ export default function Home() {
     setSelectedSessionIds(checked ? recentSessions.map((item) => item.id) : []);
   }
 
+  function requestDelete(ids: string[]) {
+    if (ids.length === 0) return;
+    setDeleteTargetIds(ids);
+  }
+
+  function closeDeleteConfirm() {
+    if (sessionsLoadingAction) return;
+    setDeleteTargetIds(null);
+  }
+
   async function doDelete(ids: string[]) {
     if (ids.length === 0) return;
-    const ok = window.confirm(ids.length > 1 ? `确定删除选中的 ${ids.length} 个会话吗？` : "确定删除该会话吗？");
-    if (!ok) return;
     setSessionsLoadingAction(true);
     const res = await fetch("/api/sessions", {
       method: "DELETE",
@@ -220,6 +230,12 @@ export default function Home() {
       setInput("");
       setChatAttachments([]);
     }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTargetIds || deleteTargetIds.length === 0) return;
+    await doDelete(deleteTargetIds);
+    setDeleteTargetIds(null);
   }
 
   async function submitRename(sessionId: string) {
@@ -296,7 +312,7 @@ export default function Home() {
         selectedSessionIds={selectedSessionIds}
         onToggleSelectSession={toggleSelectSession}
         onToggleSelectAll={toggleSelectAll}
-        onDeleteSelectedInBatch={() => doDelete(selectedSessionIds)}
+        onDeleteSelectedInBatch={() => requestDelete(selectedSessionIds)}
         sessionsLoadingAction={sessionsLoadingAction}
         recentSessions={recentSessions}
         sessionsLoading={sessionsLoading}
@@ -337,8 +353,24 @@ export default function Home() {
           if (!menuState) return;
           const id = menuState.id;
           setMenuState(null);
-          doDelete([id]);
+          requestDelete([id]);
         }}
+      />
+
+      <ConfirmModal
+        open={!!deleteTargetIds}
+        title="删除确认"
+        description={
+          deleteTargetIds && deleteTargetIds.length > 1
+            ? `是否确认删除选中的 ${deleteTargetIds.length} 个会话？删除后不可恢复。`
+            : "是否确认删除该会话？删除后不可恢复。"
+        }
+        confirmText="确认删除"
+        processingText="删除中…"
+        confirming={sessionsLoadingAction}
+        danger
+        onClose={closeDeleteConfirm}
+        onConfirm={confirmDelete}
       />
 
       <ChatMainPanel

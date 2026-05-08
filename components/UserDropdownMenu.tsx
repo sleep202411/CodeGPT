@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Moon, ShieldCheck, Sun, UserRound } from "lucide-react";
 
 import { fetchUserProfile } from "@/lib/api/person-client";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 const THEME_ENUM_LOCAL_STORAGE_KEY = "theme";
 
@@ -158,30 +159,13 @@ export default function UserDropdownMenu({ className = "" }: { className?: strin
           </button>
         </div>
       )}
-      {logoutConfirmOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-[360px] rounded-xl bg-[var(--app-card)] p-5 shadow-xl">
-            <h3 className="text-base font-semibold text-[var(--app-text)]">提示</h3>
-            <p className="mt-2 text-sm text-[var(--app-text-secondary)]">是否确认登出账号</p>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setLogoutConfirmOpen(false)}
-                className="h-9 cursor-pointer rounded-md border border-[var(--app-border)] px-4 text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-hover)]"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={confirmLogout}
-                className="h-9 cursor-pointer rounded-md bg-[var(--app-primary)] px-4 text-sm text-white hover:opacity-90"
-              >
-                确认
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={logoutConfirmOpen}
+        title="提示"
+        description="是否确认登出账号"
+        onClose={() => setLogoutConfirmOpen(false)}
+        onConfirm={confirmLogout}
+      />
       </div>
     </div>
   );

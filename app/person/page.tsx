@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Pencil, Shield, UserRound } from "lucide-react";
 import UserDropdownMenu from "@/components/UserDropdownMenu";
+import { RenameUserNameModal } from "@/components/person/RenameUserNameModal";
 import { updateUserProfileName, fetchUserProfile } from "@/lib/api/person-client";
 import type { UserProfile } from "@/lib/types/profile";
 
@@ -125,67 +126,18 @@ export default function PersonPage() {
         </section>
       </section>
 
-      {renameModalOpen ? (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="rename-username-title"
-          onClick={closeRenameModal}
-        >
-          <div
-            className="w-full max-w-[360px] rounded-xl bg-[var(--app-card)] p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="rename-username-title" className="text-base font-semibold text-[var(--app-text)]">
-              修改用户名
-            </h3>
-            <label htmlFor="rename-username-input" className="sr-only">
-              新用户名
-            </label>
-            <input
-              id="rename-username-input"
-              type="text"
-              autoFocus
-              value={renameDraft}
-              onChange={(e) => {
-                setRenameDraft(e.target.value);
-                if (renameModalError) setRenameModalError(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") closeRenameModal();
-                if (e.key === "Enter") void submitRenameUserName();
-              }}
-              disabled={savingName}
-              className="mt-3 h-10 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm text-[var(--app-text)] outline-none focus:border-[var(--app-primary)] focus:ring-1 focus:ring-[var(--app-primary)] disabled:opacity-50"
-              placeholder="请输入用户名"
-            />
-            {renameModalError ? (
-              <p className="mt-2 text-sm text-[#e54949]" role="alert">
-                {renameModalError}
-              </p>
-            ) : null}
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                disabled={savingName}
-                onClick={closeRenameModal}
-                className="h-9 cursor-pointer rounded-md border border-[var(--app-border)] px-4 text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-hover)] disabled:opacity-50"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                disabled={savingName}
-                onClick={() => void submitRenameUserName()}
-                className="h-9 cursor-pointer rounded-md bg-[var(--app-primary)] px-4 text-sm text-white hover:opacity-90 disabled:opacity-50"
-              >
-                {savingName ? "保存中…" : "确认"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <RenameUserNameModal
+        open={renameModalOpen}
+        value={renameDraft}
+        error={renameModalError}
+        saving={savingName}
+        onClose={closeRenameModal}
+        onSubmit={submitRenameUserName}
+        onChange={(value) => {
+          setRenameDraft(value);
+          if (renameModalError) setRenameModalError(null);
+        }}
+      />
 
     </main>
   );

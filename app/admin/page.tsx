@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Pencil, ShieldCheck, Users } from "lucide-react";
+import { EditUserModal } from "@/components/admin/EditUserModal";
 import UserDropdownMenu from "@/components/UserDropdownMenu";
 
 const MAX_USER_NAME_LEN = 48;
@@ -206,73 +207,20 @@ export default function AdminPage() {
         </section>
       </section>
 
-      {editUser ? (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="admin-edit-user-title"
-          onClick={closeEditModal}
-        >
-          <div
-            className="w-full max-w-[400px] rounded-xl bg-[var(--app-card)] p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="admin-edit-user-title" className="text-base font-semibold text-[var(--app-text)]">
-              编辑用户
-            </h3>
-            <p className="mt-1 truncate text-xs text-[var(--app-text-muted)]" title={editUser.userEmail}>
-              {editUser.userEmail || "无邮箱"}
-            </p>
-
-            <label htmlFor="admin-edit-name" className="mt-4 block text-sm text-[var(--app-text-secondary)]">
-              用户名
-            </label>
-            <input
-              id="admin-edit-name"
-              type="text"
-              autoFocus
-              value={editNameDraft}
-              maxLength={MAX_USER_NAME_LEN}
-              onChange={(e) => {
-                setEditNameDraft(e.target.value);
-                if (editModalError) setEditModalError(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") closeEditModal();
-              }}
-              disabled={savingEdit}
-              className="mt-1.5 h-10 w-full rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm text-[var(--app-text)] outline-none focus:border-[var(--app-primary)] focus:ring-1 focus:ring-[var(--app-primary)] disabled:opacity-50"
-              placeholder="用户名"
-            />
-
-            {editModalError ? (
-              <p className="mt-3 text-sm text-[#e54949]" role="alert">
-                {editModalError}
-              </p>
-            ) : null}
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                disabled={savingEdit}
-                onClick={closeEditModal}
-                className="h-9 cursor-pointer rounded-md border border-[var(--app-border)] px-4 text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-hover)] disabled:opacity-50"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                disabled={savingEdit}
-                onClick={() => void submitEditUser()}
-                className="h-9 cursor-pointer rounded-md bg-[var(--app-primary)] px-4 text-sm text-white hover:opacity-90 disabled:opacity-50"
-              >
-                {savingEdit ? "保存中…" : "保存"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <EditUserModal
+        open={!!editUser}
+        userEmail={editUser?.userEmail ?? ""}
+        userName={editNameDraft}
+        maxUserNameLen={MAX_USER_NAME_LEN}
+        error={editModalError}
+        saving={savingEdit}
+        onClose={closeEditModal}
+        onSubmit={submitEditUser}
+        onChangeUserName={(value) => {
+          setEditNameDraft(value);
+          if (editModalError) setEditModalError(null);
+        }}
+      />
     </main>
   );
 }
